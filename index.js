@@ -14,14 +14,14 @@ const {
 } = ReactNative;
 
 const TimerMixin = require('react-timer-mixin');
-const ViewPager = require('react-native-pager-view').default;
+import PagerView from 'react-native-pager-view';
 
 const SceneComponent = require('./SceneComponent');
 const DefaultTabBar = require('./DefaultTabBar');
 const ScrollableTabBar = require('./ScrollableTabBar');
 
 const AnimatedViewPagerAndroid = Platform.OS === 'android' ?
-  Animated.createAnimatedComponent(ViewPager) :
+  Animated.createAnimatedComponent(PagerView) :
   undefined;
 
 const ScrollableTabView = createReactClass({
@@ -32,6 +32,7 @@ const ScrollableTabView = createReactClass({
   },
   scrollOnMountCalled: false,
   tabWillChangeWithoutGesture: false,
+  scrollView: React.createRef(),
 
   propTypes: {
     tabBarPosition: PropTypes.oneOf(['top', 'bottom', 'overlayTop', 'overlayBottom', ]),
@@ -141,9 +142,10 @@ const ScrollableTabView = createReactClass({
       }
     } else {
       if (this.scrollView) {
+        console.log('log scr', this.scrollView)
         this.tabWillChangeWithoutGesture = true;
         if (this.props.scrollWithoutAnimation) {
-          this.scrollView.setPageWithoutAnimation(pageNumber);
+          this.scrollView.current?.setPageWithoutAnimation(pageNumber);
         } else {
           this.scrollView.setPage(pageNumber);
         }
@@ -258,7 +260,8 @@ const ScrollableTabView = createReactClass({
         onPageSelected={this._updateSelectedPage}
         keyboardDismissMode="on-drag"
         scrollEnabled={!this.props.locked}
-        onPageScroll={Animated.event(
+        onPageScroll={(a) => {
+          Animated.event(
           [{
             nativeEvent: {
               position: this.state.positionAndroid,
@@ -267,10 +270,16 @@ const ScrollableTabView = createReactClass({
           }, ],
           {
             useNativeDriver: true,
-            listener: this._onScroll,
+            listener: (e) => {
+              try {
+                this._onScroll(e);
+              } catch (error) {
+                console.error('Error in onPageScroll listener:', error);
+              }
+            }
           },
-        )}
-        ref={(scrollView) => { this.scrollView = scrollView; }}
+        )}}
+        ref={this.scrollView}
         {...this.props.contentProps}
       >
         {scenes}
@@ -331,7 +340,12 @@ const ScrollableTabView = createReactClass({
       }
     } else {
       const { position, offset, } = e.nativeEvent;
-      this.props.onScroll(position + offset);
+      const scrollValue = position + offset;
+
+      // Prevent redundant updates
+      if (Math.abs(scrollValue - this.state.scrollValue.__getValue()) > 0.01) {
+        this.props.onScroll(scrollValue);
+      }
     }
   },
 
