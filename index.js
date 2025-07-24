@@ -32,7 +32,6 @@ const ScrollableTabView = createReactClass({
   },
   scrollOnMountCalled: false,
   tabWillChangeWithoutGesture: false,
-  scrollView: React.createRef(),
 
   propTypes: {
     tabBarPosition: PropTypes.oneOf(['top', 'bottom', 'overlayTop', 'overlayBottom', ]),
@@ -144,9 +143,9 @@ const ScrollableTabView = createReactClass({
       if (this.scrollView) {
         this.tabWillChangeWithoutGesture = true;
         if (this.props.scrollWithoutAnimation) {
-          this.scrollView.current?.setPageWithoutAnimation(pageNumber);
+          this.scrollView.setPageWithoutAnimation(pageNumber);
         } else {
-          this.scrollView.current?.setPage(pageNumber);
+          this.scrollView.setPage(pageNumber);
         }
       }
     }
@@ -278,7 +277,7 @@ const ScrollableTabView = createReactClass({
             }
           },
         )}}
-        ref={this.scrollView}
+        ref={(scrollView) => { this.scrollView = scrollView; }}
         {...this.props.contentProps}
       >
         {scenes}
